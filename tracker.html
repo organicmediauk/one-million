@@ -1,4 +1,4 @@
-eee8<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -6,27 +6,29 @@ eee8<!DOCTYPE html>
 <title>Monthly £1m Milestone Counter</title>
 <style>
   :root {
-    --bg: #efeee8;
-    --card: #c3c2bb;
-    --track: #000000;
-    --fill: #ff6255;
-    --accent: #9ad1ff;
-    --text: #212121;
-    --muted: #95a0c7;
-    --good: #33d69f;
-    --warn: #ffd166;
-    --bad: #ef476f;
+    /* EXB brand palette */
+    --bg: #efeee8;        /* cream */
+    --card: #ffffff;      /* white card */
+    --track: #d9d9d9;     /* light neutral track */
+    --fill: #ff8255;      /* EXB orange */
+    --accent: #ff9c77;    /* lighter orange */
+    --text: #212121;      /* charcoal */
+    --muted: #666666;     /* muted charcoal */
+    --good: #ff8255;      /* brand orange for good */
+    --warn: #212121;      /* fallback warn */
+    --bad:  #212121;      /* fallback bad */
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; height: 100vh; display: grid; place-items: center;
-    background: radial-gradient(1200px 600px at 20% -10%, #16224d 0%, #0b1020 45%, #0b1020 100%), var(--bg);
+    background: radial-gradient(1000px 520px at 30% -10%, #ffffff 0%, #efeee8 50%, #efeee8 100%), var(--bg);
     color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   }
   .card {
-    width: min(1100px, 92vw); padding: 28px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
-    backdrop-filter: blur(8px);
+    width: min(1100px, 92vw); padding: 28px; background: var(--card);
+    border: 1px solid rgba(33,33,33,0.12); border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.35);
+    backdrop-filter: blur(4px);
   }
   .header { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom: 18px; }
   .title { font-size: clamp(20px, 3.2vw, 28px); letter-spacing: 0.3px; font-weight: 700; }
@@ -41,20 +43,20 @@ eee8<!DOCTYPE html>
 
   .bar-wrap {
     position: relative; height: 28px; background: var(--track);
-    border-radius: 999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px; overflow: hidden; border: 1px solid rgba(33,33,33,0.12);
   }
   .bar-fill {
     height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--fill), var(--accent));
-    box-shadow: inset 0 0 12px rgba(255,255,255,0.18), 0 6px 18px rgba(106,166,255,0.35);
+    box-shadow: inset 0 0 8px rgba(255,130,85,0.25), 0 6px 18px rgba(255,130,85,0.35);
     transition: width 900ms cubic-bezier(.2,.8,.2,1);
   }
-  .tick { position: absolute; top: -10px; width: 1px; height: 48px; background: rgba(255,255,255,0.2); }
-  .tick-label { position: absolute; top: 38px; transform: translateX(-50%); font-size: 12px; color: var(--muted); }
+  .tick { position: absolute; top: -10px; width: 1px; height: 48px; background: rgba(33,33,33,0.12); }
+  .tick-label { position: absolute; top: 38px; transform: translateX(-50%); font-size: 12px; color: #6b6b6b; }
   .milestone-dot {
     position: absolute; top: 50%; transform: translate(-50%, -50%);
-    width: 10px; height: 10px; background: #fff; border-radius: 50%;
-    box-shadow: 0 0 0 6px rgba(255,255,255,0.15);
+    width: 10px; height: 10px; background: #212121; border-radius: 50%;
+    box-shadow: 0 0 0 6px rgba(33,33,33,0.10);
   }
 
   .celebrate { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
@@ -66,14 +68,22 @@ eee8<!DOCTYPE html>
   }
 
   .footer { display:flex; flex-wrap: wrap; justify-content: space-between; align-items:center; gap:12px; margin-top: 18px; color: var(--muted); font-size: 14px; }
-  .badge { display:inline-flex; align-items:center; gap:8px; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); }
-  .status-dot { width:10px; height:10px; border-radius:50%; background: var(--good); box-shadow: 0 0 0 4px rgba(51,214,159,0.15); }
+  .badge {
+    display:inline-flex; align-items:center; gap:8px; padding: 6px 10px;
+    border-radius: 999px; border: 1px solid rgba(33,33,33,0.12);
+    background: rgba(255,255,255,0.75); color: var(--text);
+  }
+  .status-dot {
+    width:10px; height:10px; border-radius:50%;
+    background: var(--good);
+    box-shadow: 0 0 0 4px rgba(255,130,85,0.22);
+  }
 
   .pace { display:flex; gap:10px; align-items:center; }
-  .pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); font-weight:600; }
-  .pill.ok { color:#d9fff0; border-color: rgba(51,214,159,0.35); }
-  .pill.warn { color:#fff6db; border-color: rgba(255,209,102,0.35); }
-  .pill.bad { color:#ffe1e8; border-color: rgba(239,71,111,0.35); }
+  .pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(33,33,33,0.12); background: rgba(255,255,255,0.6); font-weight:600; }
+  .pill.ok { color:var(--good); border-color: rgba(255,130,85,0.35); }
+  .pill.warn { color:#212121; border-color: rgba(33,33,33,0.25); }
+  .pill.bad { color:#212121; border-color: rgba(33,33,33,0.25); }
 </style>
 </head>
 <body>
@@ -123,7 +133,7 @@ eee8<!DOCTYPE html>
   const paceDetail = document.getElementById('paceDetail');
   const bizDaysCountEl = document.getElementById('bizDaysCount');
 
-  // Track milestone celebrations so we only fire once per threshold (per page session)
+  // Track milestone celebrations
   const celebrated = new Set();
 
   function fmtGBP(n) {
@@ -141,34 +151,18 @@ eee8<!DOCTYPE html>
   }
 
   function injectMilestones(milestones, target) {
-    // Clear old ticks/dots
     [...barWrap.querySelectorAll('.tick,.tick-label,.milestone-dot')].forEach(n => n.remove());
-
     milestones.forEach(ms => {
       const pct = Math.max(0, Math.min(100, (ms / target) * 100));
-      const tick = document.createElement('div');
-      tick.className = 'tick';
-      tick.style.left = pct + '%';
-      barWrap.appendChild(tick);
-
-      const dot = document.createElement('div');
-      dot.className = 'milestone-dot';
-      dot.style.left = pct + '%';
-      barWrap.appendChild(dot);
-
-      const label = document.createElement('div');
-      label.className = 'tick-label';
-      label.style.left = pct + '%';
-      label.textContent = fmtGBP(ms);
-      barWrap.appendChild(label);
+      const tick = document.createElement('div'); tick.className = 'tick'; tick.style.left = pct + '%'; barWrap.appendChild(tick);
+      const dot = document.createElement('div'); dot.className = 'milestone-dot'; dot.style.left = pct + '%'; barWrap.appendChild(dot);
+      const label = document.createElement('div'); label.className = 'tick-label'; label.style.left = pct + '%'; label.textContent = fmtGBP(ms); barWrap.appendChild(label);
     });
   }
 
   function confettiBurst() {
-    const colors = ['#6aa6ff', '#9ad1ff', '#33d69f', '#ffd166', '#ef476f', '#a78bfa'];
-    const count = 120;
-    const w = window.innerWidth;
-
+    const colors = ['#ff8255', '#212121', '#efeee8', '#ff9c77'];
+    const count = 120; const w = window.innerWidth;
     for (let i = 0; i < count; i++) {
       const piece = document.createElement('div');
       piece.className = 'confetti';
@@ -183,10 +177,7 @@ eee8<!DOCTYPE html>
 
   function maybeCelebrate(current, milestones) {
     milestones.forEach(ms => {
-      if (current >= ms && !celebrated.has(ms)) {
-        celebrated.add(ms);
-        confettiBurst();
-      }
+      if (current >= ms && !celebrated.has(ms)) { celebrated.add(ms); confettiBurst(); }
     });
   }
 
@@ -203,59 +194,39 @@ eee8<!DOCTYPE html>
     barFill.style.width = pct + '%';
   }
 
-  function daysInMonth(year, monthIndex) {
-    return new Date(year, monthIndex + 1, 0).getDate();
-  }
+  function daysInMonth(year, monthIndex) { return new Date(year, monthIndex + 1, 0).getDate(); }
 
-  // ===== Business day helpers =====
-  function isBusinessDay(d){
-    const w = d.getDay();
-    return w >= 1 && w <= 5; // Mon–Fri
-  }
+  function isBusinessDay(d){ const w = d.getDay(); return w >= 1 && w <= 5; }
   function lastBusinessDayOfMonth(fromDate = new Date()){
-    const y = fromDate.getFullYear();
-    const m = fromDate.getMonth();
-    let d = new Date(y, m + 1, 0); // last day of month
+    const y = fromDate.getFullYear(), m = fromDate.getMonth();
+    let d = new Date(y, m + 1, 0);
     while(!isBusinessDay(d)) d.setDate(d.getDate() - 1);
     return d;
   }
-  // Count remaining business days INCLUDING today if it's Mon–Fri
   function businessDaysLeft(fromDate = new Date()) {
-    const y = fromDate.getFullYear();
-    const m = fromDate.getMonth();
+    const y = fromDate.getFullYear(), m = fromDate.getMonth();
     const end = lastBusinessDayOfMonth(fromDate);
     const start = new Date(y, m, fromDate.getDate());
     start.setHours(0,0,0,0);
-
     let d = new Date(start), count = 0;
     while (d <= end) { if (isBusinessDay(d)) count++; d.setDate(d.getDate() + 1); }
     return Math.max(0, count);
   }
 
   function computePace(current, target) {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const totalDays = daysInMonth(y, m);
-    const elapsedDays = now.getDate(); // 1-based
-
+    const now = new Date(); const y = now.getFullYear(); const m = now.getMonth();
+    const totalDays = daysInMonth(y, m); const elapsedDays = now.getDate();
     const requiredDaily = target / totalDays;
     const achievedDaily = elapsedDays > 0 ? current / elapsedDays : 0;
     const expectedByToday = (target * elapsedDays) / totalDays;
-    const delta = current - expectedByToday; // positive if ahead
-
-    const projected = achievedDaily * totalDays;
-
+    const delta = current - expectedByToday; const projected = achievedDaily * totalDays;
     return { requiredDaily, achievedDaily, expectedByToday, delta, projected, totalDays, elapsedDays };
   }
 
   function setPaceUI(current, target) {
     const p = computePace(current, target);
     const sign = p.delta >= 0 ? 'ok' : (p.delta > -0.02*target ? 'warn' : 'bad');
-
-    paceStatus.classList.remove('ok','warn','bad');
-    paceStatus.classList.add(sign);
-
+    paceStatus.classList.remove('ok','warn','bad'); paceStatus.classList.add(sign);
     if (p.delta >= 0) {
       paceStatus.textContent = 'On pace';
       paceDetail.textContent = `Ahead by ${fmtGBP(Math.abs(p.delta))}. Projected ${fmtGBP(p.projected)} by month end.`;
@@ -276,15 +247,12 @@ eee8<!DOCTYPE html>
       const current = Number(data.current) || 0;
       const target = Number(data.target) || 1000000;
       const milestones = Array.isArray(data.milestones) && data.milestones.length ? data.milestones : DEFAULT_MILESTONES;
-
       injectMilestones(milestones, target);
       setNumbers(current, target);
       setPaceUI(current, target);
       updateBizDaysUI();
-
       const ts = data.updated || Date.now();
       updatedEl.textContent = `Updated ${new Date(ts).toLocaleString('en-GB')}`;
-
       maybeCelebrate(current, milestones);
     } catch (err) {
       updatedEl.textContent = 'Error fetching data';
