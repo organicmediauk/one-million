@@ -10,7 +10,8 @@
     --bg: #ffffff;      /* page background white */
     --card: #efeee8;    /* card cream */
     --track: #d9d9d9;   /* light neutral track */
-    --fill: #ff8255;    /* EXB orange */
+    --fill: #ff8255;    /* EXB orange (Settled) */
+    --fill-muted: #ffb79f; /* Muted orange (Written) */
     --accent: #ff9c77;  /* lighter orange */
     --text: #212121;    /* charcoal */
     --muted: #666666;   /* muted charcoal */
@@ -35,25 +36,32 @@
   .updated { font-size: 12px; color: var(--muted); }
 
   .numbers {
-    display:grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end; margin-bottom: 18px;
+    display:grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end; margin-bottom: 6px;
   }
   .big { font-size: clamp(28px, 6vw, 56px); font-weight: 800; line-height: 1; }
   .big .sm { font-weight: 600; font-size: 0.48em; color: var(--muted); margin-left: 8px; }
   .target { text-align: right; color: var(--muted); font-size: clamp(12px, 1.8vw, 16px); }
 
-  .bars { display: grid; gap: 16px; margin-top: 4px; }
-  .bar-title { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+  .bar-title { display:flex; justify-content:space-between; align-items:baseline; margin: 10px 0 6px; color: var(--muted); font-size: 14px; }
   .bar-value { font-weight: 700; color: var(--text); }
 
   .bar-wrap {
     position: relative; height: 28px; background: var(--track);
     border-radius: 999px; overflow: hidden; border: 1px solid rgba(33,33,33,0.12);
   }
+  .bar-fill, .bar-fill-written {
+    position: absolute; inset: 0 auto 0 0; height: 100%; width: 0%;
+    transition: width 900ms cubic-bezier(.2,.8,.2,1);
+  }
+  .bar-fill-written {
+    background: linear-gradient(90deg, var(--fill-muted), #ffd8c9);
+    box-shadow: inset 0 0 6px rgba(255,183,159,0.25);
+    z-index: 1;
+  }
   .bar-fill {
-    height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--fill), var(--accent));
     box-shadow: inset 0 0 8px rgba(255,130,85,0.25), 0 6px 18px rgba(255,130,85,0.35);
-    transition: width 900ms cubic-bezier(.2,.8,.2,1);
+    z-index: 2;
   }
   .tick { position: absolute; top: -10px; width: 1px; height: 48px; background: rgba(33,33,33,0.12); }
   .tick-label { position: absolute; top: 38px; transform: translateX(-50%); font-size: 12px; color: #6b6b6b; }
@@ -61,7 +69,14 @@
     position: absolute; top: 50%; transform: translate(-50%, -50%);
     width: 10px; height: 10px; background: #212121; border-radius: 50%;
     box-shadow: 0 0 0 6px rgba(33,33,33,0.10);
+    z-index: 3;
   }
+
+  .legend { display:flex; gap:16px; align-items:center; margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+  .key { display:flex; align-items:center; gap:8px; }
+  .swatch { width:14px; height:14px; border-radius:4px; border: 1px solid rgba(33,33,33,0.12); }
+  .swatch.written { background: var(--fill-muted); }
+  .swatch.settled { background: var(--fill); }
 
   .celebrate { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .confetti { position: absolute; width: 8px; height: 10px; opacity: 0; animation: fall 1400ms ease-out forwards; }
@@ -77,11 +92,7 @@
     border-radius: 999px; border: 1px solid rgba(33,33,33,0.12);
     background: rgba(255,255,255,0.75); color: var(--text);
   }
-  .status-dot {
-    width:10px; height:10px; border-radius:50%;
-    background: var(--good);
-    box-shadow: 0 0 0 4px rgba(255,130,85,0.22);
-  }
+  .status-dot { width:10px; height:10px; border-radius:50%; background: var(--good); box-shadow: 0 0 0 4px rgba(255,130,85,0.22); }
 
   .pace { display:flex; gap:10px; align-items:center; }
   .pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(33,33,33,0.12); background: rgba(255,255,255,0.6); font-weight:600; }
@@ -101,30 +112,19 @@
     <div class="target" id="pct">0% of target</div>
   </div>
 
-  <!-- TWO BARS -->
-  <div class="bars">
-    <!-- Bar 1: Settled -->
-    <div class="bar-block" id="settledBlock">
-      <div class="bar-title">
-        <span>Settled this month</span>
-        <span class="bar-value" id="settledValue">£0</span>
-      </div>
-      <div class="bar-wrap" id="barWrapSettled">
-        <div class="bar-fill" id="barFillSettled"></div>
-        <!-- milestone ticks & dots injected here -->
-      </div>
-    </div>
-
-    <!-- Bar 2: Written -->
-    <div class="bar-block" id="writtenBlock">
-      <div class="bar-title">
-        <span>Deals written (Deposit Taken / Awaiting AML / Invoice Sent)</span>
-        <span class="bar-value" id="writtenValue">£0</span>
-      </div>
-      <div class="bar-wrap" id="barWrapWritten">
-        <div class="bar-fill" id="barFillWritten"></div>
-      </div>
-    </div>
+  <!-- SINGLE BAR: Written (muted) behind Settled (bright) -->
+  <div class="bar-title">
+    <span>Progress this month</span>
+    <span class="bar-value" id="settledValue">£0</span>
+  </div>
+  <div class="bar-wrap" id="barWrap">
+    <div class="bar-fill-written" id="barFillWritten"></div>
+    <div class="bar-fill" id="barFillSettled"></div>
+    <!-- milestone ticks & dots injected here -->
+  </div>
+  <div class="legend">
+    <div class="key"><span class="swatch written"></span> Written: <span id="writtenValue">£0</span></div>
+    <div class="key"><span class="swatch settled"></span> Settled</div>
   </div>
 
   <div class="footer">
@@ -151,12 +151,10 @@
   const pctEl = document.getElementById('pct');
   const updatedEl = document.getElementById('updated');
 
-  const barWrapSettled = document.getElementById('barWrapSettled');
+  const barWrap = document.getElementById('barWrap');
   const barFillSettled = document.getElementById('barFillSettled');
-  const settledValueEl = document.getElementById('settledValue');
-
-  const barWrapWritten = document.getElementById('barWrapWritten');
   const barFillWritten = document.getElementById('barFillWritten');
+  const settledValueEl = document.getElementById('settledValue');
   const writtenValueEl = document.getElementById('writtenValue');
 
   const celebrate = document.getElementById('celebrate');
@@ -164,7 +162,6 @@
   const paceDetail = document.getElementById('paceDetail');
   const bizDaysCountEl = document.getElementById('bizDaysCount');
 
-  // Track milestone celebrations
   const celebrated = new Set();
 
   function fmtGBP(n) {
@@ -178,16 +175,16 @@
     titleEl.textContent = `${monthLabel} Settled Revenue Progress`;
   }
 
-  function clearMilestones(el){
-    [...el.querySelectorAll('.tick,.tick-label,.milestone-dot')].forEach(n => n.remove());
+  function clearMilestones(){
+    [...barWrap.querySelectorAll('.tick,.tick-label,.milestone-dot')].forEach(n => n.remove());
   }
-  function injectMilestones(el, milestones, target) {
-    clearMilestones(el);
+  function injectMilestones(milestones, target) {
+    clearMilestones();
     milestones.forEach(ms => {
       const pct = Math.max(0, Math.min(100, (ms / target) * 100));
-      const tick = document.createElement('div'); tick.className = 'tick'; tick.style.left = pct + '%'; el.appendChild(tick);
-      const dot = document.createElement('div'); dot.className = 'milestone-dot'; dot.style.left = pct + '%'; el.appendChild(dot);
-      const label = document.createElement('div'); label.className = 'tick-label'; label.style.left = pct + '%'; label.textContent = fmtGBP(ms); el.appendChild(label);
+      const tick = document.createElement('div'); tick.className = 'tick'; tick.style.left = pct + '%'; barWrap.appendChild(tick);
+      const dot = document.createElement('div'); dot.className = 'milestone-dot'; dot.style.left = pct + '%'; barWrap.appendChild(dot);
+      const label = document.createElement('div'); label.className = 'tick-label'; label.style.left = pct + '%'; label.textContent = fmtGBP(ms); barWrap.appendChild(label);
     });
   }
 
@@ -216,18 +213,19 @@
     return res.json();
   }
 
-  function setSettledBar(current, target) {
-    const pct = target > 0 ? Math.min(100, (current/target)*100) : 0;
-    settledValueEl.textContent = fmtGBP(current);
-    bigNumber.innerHTML = `${fmtGBP(current)}<span class="sm">of ${fmtGBP(target)}</span>`;
-    pctEl.textContent = `${Math.floor(pct)}% of target`;
-    barFillSettled.style.width = pct + '%';
-  }
+  function setBars(current, written, target) {
+    // clamp widths to [0,100]
+    const pctWritten = target > 0 ? Math.min(100, (written/target)*100) : 0;
+    const pctSettled = target > 0 ? Math.min(100, (current/target)*100) : 0;
 
-  function setWrittenBar(written, target) {
-    const pct = target > 0 ? Math.min(100, (written/target)*100) : 0;
+    barFillWritten.style.width = pctWritten + '%';
+    barFillSettled.style.width = pctSettled + '%';
+
+    settledValueEl.textContent = fmtGBP(current);
     writtenValueEl.textContent = fmtGBP(written);
-    barFillWritten.style.width = pct + '%';
+
+    bigNumber.innerHTML = `${fmtGBP(current)}<span class="sm">of ${fmtGBP(target)}</span>`;
+    pctEl.textContent = `${Math.floor(pctSettled)}% of target`;
   }
 
   function daysInMonth(year, monthIndex) { return new Date(year, monthIndex + 1, 0).getDate(); }
@@ -275,18 +273,20 @@
   async function refresh() {
     try {
       const data = await fetchData();
-      const current = Number(data.current) || 0;     // Settled
-      const written = Number(data.written) || 0;     // Deals written (snapshot)
-      const target = Number(data.target) || 1000000;
+
+      // Defensive: if API doesn't send 'written', fall back to 0 and warn
+      const current = Number(data.current) || 0;
+      const target  = Number(data.target)  || 1000000;
+      const written = ('written' in data) ? (Number(data.written) || 0) : 0;
+      if (!('written' in data)) {
+        console.warn("API payload has no 'written' field. Showing 0. Update your Apps Script to include Metrics!C2.");
+      }
+
       const milestones = Array.isArray(data.milestones) && data.milestones.length ? data.milestones : DEFAULT_MILESTONES;
 
-      // Bars
-      injectMilestones(barWrapSettled, milestones, target);  // Settled bar has ticks/milestones
-      clearMilestones(barWrapWritten);                       // Written bar: no ticks to avoid clutter
-      setSettledBar(current, target);
-      setWrittenBar(written, target);
+      injectMilestones(milestones, target);
+      setBars(current, written, target);
 
-      // Pace & meta
       setPaceUI(current, target);
       updateBizDaysUI();
 
