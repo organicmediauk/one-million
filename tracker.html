@@ -6,22 +6,22 @@
 <title>Monthly £1m Milestone Counter</title>
 <style>
   :root {
-    /* EXB brand palette */
-    --bg: #efeee8;        /* cream */
-    --card: #ffffff;      /* white card */
-    --track: #d9d9d9;     /* light neutral track */
-    --fill: #ff8255;      /* EXB orange */
-    --accent: #ff9c77;    /* lighter orange */
-    --text: #212121;      /* charcoal */
-    --muted: #666666;     /* muted charcoal */
-    --good: #ff8255;      /* brand orange for good */
-    --warn: #212121;      /* fallback warn */
-    --bad:  #212121;      /* fallback bad */
+    /* EXB brand palette (white background, cream card) */
+    --bg: #ffffff;      /* page background white */
+    --card: #efeee8;    /* card cream */
+    --track: #d9d9d9;   /* light neutral track */
+    --fill: #ff8255;    /* EXB orange */
+    --accent: #ff9c77;  /* lighter orange */
+    --text: #212121;    /* charcoal */
+    --muted: #666666;   /* muted charcoal */
+    --good: #ff8255;    /* brand orange */
+    --warn: #212121;
+    --bad:  #212121;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; height: 100vh; display: grid; place-items: center;
-    background: radial-gradient(1000px 520px at 30% -10%, #ffffff 0%, #efeee8 50%, #efeee8 100%), var(--bg);
+    background: var(--bg);
     color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   }
   .card {
@@ -40,6 +40,10 @@
   .big { font-size: clamp(28px, 6vw, 56px); font-weight: 800; line-height: 1; }
   .big .sm { font-weight: 600; font-size: 0.48em; color: var(--muted); margin-left: 8px; }
   .target { text-align: right; color: var(--muted); font-size: clamp(12px, 1.8vw, 16px); }
+
+  .bars { display: grid; gap: 16px; margin-top: 4px; }
+  .bar-title { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+  .bar-value { font-weight: 700; color: var(--text); }
 
   .bar-wrap {
     position: relative; height: 28px; background: var(--track);
@@ -82,8 +86,7 @@
   .pace { display:flex; gap:10px; align-items:center; }
   .pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(33,33,33,0.12); background: rgba(255,255,255,0.6); font-weight:600; }
   .pill.ok { color:var(--good); border-color: rgba(255,130,85,0.35); }
-  .pill.warn { color:#212121; border-color: rgba(33,33,33,0.25); }
-  .pill.bad { color:#212121; border-color: rgba(33,33,33,0.25); }
+  .pill.warn, .pill.bad { color:#212121; border-color: rgba(33,33,33,0.25); }
 </style>
 </head>
 <body>
@@ -98,9 +101,30 @@
     <div class="target" id="pct">0% of target</div>
   </div>
 
-  <div class="bar-wrap" id="barWrap">
-    <div class="bar-fill" id="barFill"></div>
-    <!-- milestone ticks & dots injected here -->
+  <!-- TWO BARS -->
+  <div class="bars">
+    <!-- Bar 1: Settled -->
+    <div class="bar-block" id="settledBlock">
+      <div class="bar-title">
+        <span>Settled this month</span>
+        <span class="bar-value" id="settledValue">£0</span>
+      </div>
+      <div class="bar-wrap" id="barWrapSettled">
+        <div class="bar-fill" id="barFillSettled"></div>
+        <!-- milestone ticks & dots injected here -->
+      </div>
+    </div>
+
+    <!-- Bar 2: Written -->
+    <div class="bar-block" id="writtenBlock">
+      <div class="bar-title">
+        <span>Deals written (Deposit Taken / Awaiting AML / Invoice Sent)</span>
+        <span class="bar-value" id="writtenValue">£0</span>
+      </div>
+      <div class="bar-wrap" id="barWrapWritten">
+        <div class="bar-fill" id="barFillWritten"></div>
+      </div>
+    </div>
   </div>
 
   <div class="footer">
@@ -126,8 +150,15 @@
   const bigNumber = document.getElementById('bigNumber');
   const pctEl = document.getElementById('pct');
   const updatedEl = document.getElementById('updated');
-  const barFill = document.getElementById('barFill');
-  const barWrap = document.getElementById('barWrap');
+
+  const barWrapSettled = document.getElementById('barWrapSettled');
+  const barFillSettled = document.getElementById('barFillSettled');
+  const settledValueEl = document.getElementById('settledValue');
+
+  const barWrapWritten = document.getElementById('barWrapWritten');
+  const barFillWritten = document.getElementById('barFillWritten');
+  const writtenValueEl = document.getElementById('writtenValue');
+
   const celebrate = document.getElementById('celebrate');
   const paceStatus = document.getElementById('paceStatus');
   const paceDetail = document.getElementById('paceDetail');
@@ -137,11 +168,8 @@
   const celebrated = new Set();
 
   function fmtGBP(n) {
-    try {
-      return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(n);
-    } catch {
-      return '£' + Math.round(n).toLocaleString('en-GB');
-    }
+    try { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(n); }
+    catch { return '£' + Math.round(n).toLocaleString('en-GB'); }
   }
 
   function setMonthHeader() {
@@ -150,13 +178,16 @@
     titleEl.textContent = `${monthLabel} Settled Revenue Progress`;
   }
 
-  function injectMilestones(milestones, target) {
-    [...barWrap.querySelectorAll('.tick,.tick-label,.milestone-dot')].forEach(n => n.remove());
+  function clearMilestones(el){
+    [...el.querySelectorAll('.tick,.tick-label,.milestone-dot')].forEach(n => n.remove());
+  }
+  function injectMilestones(el, milestones, target) {
+    clearMilestones(el);
     milestones.forEach(ms => {
       const pct = Math.max(0, Math.min(100, (ms / target) * 100));
-      const tick = document.createElement('div'); tick.className = 'tick'; tick.style.left = pct + '%'; barWrap.appendChild(tick);
-      const dot = document.createElement('div'); dot.className = 'milestone-dot'; dot.style.left = pct + '%'; barWrap.appendChild(dot);
-      const label = document.createElement('div'); label.className = 'tick-label'; label.style.left = pct + '%'; label.textContent = fmtGBP(ms); barWrap.appendChild(label);
+      const tick = document.createElement('div'); tick.className = 'tick'; tick.style.left = pct + '%'; el.appendChild(tick);
+      const dot = document.createElement('div'); dot.className = 'milestone-dot'; dot.style.left = pct + '%'; el.appendChild(dot);
+      const label = document.createElement('div'); label.className = 'tick-label'; label.style.left = pct + '%'; label.textContent = fmtGBP(ms); el.appendChild(label);
     });
   }
 
@@ -176,9 +207,7 @@
   }
 
   function maybeCelebrate(current, milestones) {
-    milestones.forEach(ms => {
-      if (current >= ms && !celebrated.has(ms)) { celebrated.add(ms); confettiBurst(); }
-    });
+    milestones.forEach(ms => { if (current >= ms && !celebrated.has(ms)) { celebrated.add(ms); confettiBurst(); } });
   }
 
   async function fetchData() {
@@ -187,29 +216,31 @@
     return res.json();
   }
 
-  function setNumbers(current, target) {
+  function setSettledBar(current, target) {
     const pct = target > 0 ? Math.min(100, (current/target)*100) : 0;
+    settledValueEl.textContent = fmtGBP(current);
     bigNumber.innerHTML = `${fmtGBP(current)}<span class="sm">of ${fmtGBP(target)}</span>`;
     pctEl.textContent = `${Math.floor(pct)}% of target`;
-    barFill.style.width = pct + '%';
+    barFillSettled.style.width = pct + '%';
+  }
+
+  function setWrittenBar(written, target) {
+    const pct = target > 0 ? Math.min(100, (written/target)*100) : 0;
+    writtenValueEl.textContent = fmtGBP(written);
+    barFillWritten.style.width = pct + '%';
   }
 
   function daysInMonth(year, monthIndex) { return new Date(year, monthIndex + 1, 0).getDate(); }
-
   function isBusinessDay(d){ const w = d.getDay(); return w >= 1 && w <= 5; }
   function lastBusinessDayOfMonth(fromDate = new Date()){
     const y = fromDate.getFullYear(), m = fromDate.getMonth();
-    let d = new Date(y, m + 1, 0);
-    while(!isBusinessDay(d)) d.setDate(d.getDate() - 1);
-    return d;
+    let d = new Date(y, m + 1, 0); while(!isBusinessDay(d)) d.setDate(d.getDate() - 1); return d;
   }
   function businessDaysLeft(fromDate = new Date()) {
     const y = fromDate.getFullYear(), m = fromDate.getMonth();
     const end = lastBusinessDayOfMonth(fromDate);
-    const start = new Date(y, m, fromDate.getDate());
-    start.setHours(0,0,0,0);
-    let d = new Date(start), count = 0;
-    while (d <= end) { if (isBusinessDay(d)) count++; d.setDate(d.getDate() + 1); }
+    const start = new Date(y, m, fromDate.getDate()); start.setHours(0,0,0,0);
+    let d = new Date(start), count = 0; while (d <= end) { if (isBusinessDay(d)) count++; d.setDate(d.getDate() + 1); }
     return Math.max(0, count);
   }
 
@@ -244,15 +275,24 @@
   async function refresh() {
     try {
       const data = await fetchData();
-      const current = Number(data.current) || 0;
+      const current = Number(data.current) || 0;     // Settled
+      const written = Number(data.written) || 0;     // Deals written (snapshot)
       const target = Number(data.target) || 1000000;
       const milestones = Array.isArray(data.milestones) && data.milestones.length ? data.milestones : DEFAULT_MILESTONES;
-      injectMilestones(milestones, target);
-      setNumbers(current, target);
+
+      // Bars
+      injectMilestones(barWrapSettled, milestones, target);  // Settled bar has ticks/milestones
+      clearMilestones(barWrapWritten);                       // Written bar: no ticks to avoid clutter
+      setSettledBar(current, target);
+      setWrittenBar(written, target);
+
+      // Pace & meta
       setPaceUI(current, target);
       updateBizDaysUI();
+
       const ts = data.updated || Date.now();
       updatedEl.textContent = `Updated ${new Date(ts).toLocaleString('en-GB')}`;
+
       maybeCelebrate(current, milestones);
     } catch (err) {
       updatedEl.textContent = 'Error fetching data';
