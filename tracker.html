@@ -99,7 +99,10 @@
       <span class="pill" id="paceStatus">Calculating pace</span>
       <span id="paceDetail">—</span>
     </div>
+    <div class="badge" id="bizDays"><span id="bizDaysCount">—</span></div>
+    <div class="badge" id="bizCountdown">⏳ <span id="bizCountdownText">—</span></div>
   </div>
+</div>
 </div>
 
 <div class="celebrate" id="celebrate"></div>
@@ -120,6 +123,9 @@
   const celebrate = document.getElementById('celebrate');
   const paceStatus = document.getElementById('paceStatus');
   const paceDetail = document.getElementById('paceDetail');
+  const bizDaysEl = document.getElementById('bizDays');
+  const bizDaysCountEl = document.getElementById('bizDaysCount');
+  const bizCountdownText = document.getElementById('bizCountdownText');
 
   // Track milestone celebrations so we only fire once per threshold (per page session)
   const celebrated = new Set();
@@ -205,6 +211,73 @@
     return new Date(year, monthIndex + 1, 0).getDate();
   }
 
+  // ===== Business day helpers & countdown =====
+  function isBusinessDay(d){
+    const w = d.getDay();
+    return w >= 1 && w <= 5; // Mon–Fri
+  }
+  function businessDayEnd(date){
+    const d = new Date(date);
+    d.setHours(17,0,0,0); // 17:00 local end of business
+    return d;
+  }
+  function lastBusinessDayOfMonth(fromDate = new Date()){
+    const y = fromDate.getFullYear();
+    const m = fromDate.getMonth();
+    let d = new Date(y, m + 1, 0); // last day of month
+    while(!isBusinessDay(d)){
+      d.setDate(d.getDate() - 1);
+    }
+    return d;
+  }
+  function businessDaysLeft(fromDate = new Date()) {
+    const y = fromDate.getFullYear();
+    const m = fromDate.getMonth();
+    const end = lastBusinessDayOfMonth(fromDate);
+    const now = new Date(fromDate);
+
+    let d = new Date(y, m, now.getDate());
+    d.setHours(0,0,0,0);
+
+    let count = 0;
+    while (d <= end) {
+      if (isBusinessDay(d)) count++;
+      d.setDate(d.getDate() + 1);
+    }
+
+    // If today is a business day and we're past 17:00, don't count today
+    if (isBusinessDay(now) && now > businessDayEnd(now)) count -= 1;
+
+    return Math.max(0, count);
+  }
+  function nextBusinessDeadline(now = new Date()){
+    const endOfMonthBD = businessDayEnd(lastBusinessDayOfMonth(now));
+    // If we're beyond the last business deadline, fix to end-of-month business deadline
+    if (now > endOfMonthBD) return endOfMonthBD;
+
+    // If today is a business day and before 17:00, deadline is today 17:00
+    if (isBusinessDay(now) && now < businessDayEnd(now)){
+      return businessDayEnd(now);
+    }
+    // Otherwise, move to the next business day at 17:00
+    let d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    d.setHours(12,0,0,0);
+    while(!isBusinessDay(d)){
+      d.setDate(d.getDate() + 1);
+    }
+    return businessDayEnd(d);
+  }
+  function fmtDuration(ms){
+    if (ms < 0) ms = 0;
+    const totalSec = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    const pad = n => String(n).padStart(2,'0');
+    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+  }
+
   function computePace(current, target) {
     const now = new Date();
     const y = now.getFullYear();
@@ -238,6 +311,24 @@
     }
   }
 
+  function updateCountdownUI(){
+    const bLeft = businessDaysLeft(new Date());
+    if (bizDaysCountEl) bizDaysCountEl.textContent = `${bLeft} business days remaining (Mon–Fri)`;
+
+    function tick(){
+      const deadline = nextBusinessDeadline(new Date());
+      const now = new Date();
+      const ms = deadline - now;
+      const label = (isBusinessDay(now) && now < businessDayEnd(now))
+        ? "to today's 17:00"
+        : `to ${deadline.toLocaleDateString('en-GB', { weekday:'short' })} 17:00`;
+      if (bizCountdownText) bizCountdownText.textContent = `${fmtDuration(ms)} ${label}`;
+    }
+    tick();
+    if (window.__bizCountdownInterval) clearInterval(window.__bizCountdownInterval);
+    window.__bizCountdownInterval = setInterval(tick, 1000);
+  }
+
   async function refresh() {
     try {
       const data = await fetchData();
@@ -248,6 +339,7 @@
       injectMilestones(milestones, target);
       setNumbers(current, target);
       setPaceUI(current, target);
+      updateCountdownUI();
 
       const ts = data.updated || Date.now();
       updatedEl.textContent = `Updated ${new Date(ts).toLocaleString('en-GB')}`;
