@@ -11,7 +11,6 @@
     --card: #efeee8;    /* card cream */
     --track: #d9d9d9;   /* light neutral track */
     --fill: #ff8255;    /* EXB orange (Settled) */
-    --fill-muted: #ffb79f; /* Muted orange (Written) */
     --accent: #ff9c77;  /* lighter orange */
     --text: #212121;    /* charcoal */
     --muted: #666666;   /* muted charcoal */
@@ -49,18 +48,11 @@
     position: relative; height: 28px; background: var(--track);
     border-radius: 999px; overflow: hidden; border: 1px solid rgba(33,33,33,0.12);
   }
-  .bar-fill, .bar-fill-written {
-    position: absolute; inset: 0 auto 0 0; height: 100%; width: 0%;
-    transition: width 900ms cubic-bezier(.2,.8,.2,1);
-  }
-  .bar-fill-written {
-    background: linear-gradient(90deg, var(--fill-muted), #ffd8c9);
-    box-shadow: inset 0 0 6px rgba(255,183,159,0.25);
-    z-index: 1;
-  }
   .bar-fill {
+    position: absolute; inset: 0 auto 0 0; height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--fill), var(--accent));
     box-shadow: inset 0 0 8px rgba(255,130,85,0.25), 0 6px 18px rgba(255,130,85,0.35);
+    transition: width 900ms cubic-bezier(.2,.8,.2,1);
     z-index: 2;
   }
   .tick { position: absolute; top: -10px; width: 1px; height: 48px; background: rgba(33,33,33,0.12); }
@@ -75,8 +67,8 @@
   .legend { display:flex; gap:16px; align-items:center; margin: 8px 0 0; color: var(--muted); font-size: 13px; }
   .key { display:flex; align-items:center; gap:8px; }
   .swatch { width:14px; height:14px; border-radius:4px; border: 1px solid rgba(33,33,33,0.12); }
-  .swatch.written { background: var(--fill-muted); }
   .swatch.settled { background: var(--fill); }
+  .swatch.written { background: #ffb79f; } /* muted orange indicator only */
 
   .celebrate { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .confetti { position: absolute; width: 8px; height: 10px; opacity: 0; animation: fall 1400ms ease-out forwards; }
@@ -112,19 +104,20 @@
     <div class="target" id="pct">0% of target</div>
   </div>
 
-  <!-- SINGLE BAR: Written (muted) behind Settled (bright) -->
+  <!-- SINGLE BAR: Settled only -->
   <div class="bar-title">
     <span>Progress this month</span>
     <span class="bar-value" id="settledValue">£0</span>
   </div>
   <div class="bar-wrap" id="barWrap">
-    <div class="bar-fill-written" id="barFillWritten"></div>
     <div class="bar-fill" id="barFillSettled"></div>
     <!-- milestone ticks & dots injected here -->
   </div>
+
+  <!-- Legend shows Written total (no bar) and Settled -->
   <div class="legend">
-    <div class="key"><span class="swatch written"></span> Written: <span id="writtenValue">£0</span></div>
     <div class="key"><span class="swatch settled"></span> Settled</div>
+    <div class="key"><span class="swatch written"></span> Written: <span id="writtenValue">£0</span></div>
   </div>
 
   <div class="footer">
@@ -153,8 +146,8 @@
 
   const barWrap = document.getElementById('barWrap');
   const barFillSettled = document.getElementById('barFillSettled');
-  const barFillWritten = document.getElementById('barFillWritten');
   const settledValueEl = document.getElementById('settledValue');
+
   const writtenValueEl = document.getElementById('writtenValue');
 
   const celebrate = document.getElementById('celebrate');
@@ -213,17 +206,10 @@
     return res.json();
   }
 
-  function setBars(current, written, target) {
-    // clamp widths to [0,100]
-    const pctWritten = target > 0 ? Math.min(100, (written/target)*100) : 0;
+  function setSettled(current, target) {
     const pctSettled = target > 0 ? Math.min(100, (current/target)*100) : 0;
-
-    barFillWritten.style.width = pctWritten + '%';
     barFillSettled.style.width = pctSettled + '%';
-
     settledValueEl.textContent = fmtGBP(current);
-    writtenValueEl.textContent = fmtGBP(written);
-
     bigNumber.innerHTML = `${fmtGBP(current)}<span class="sm">of ${fmtGBP(target)}</span>`;
     pctEl.textContent = `${Math.floor(pctSettled)}% of target`;
   }
@@ -274,18 +260,20 @@
     try {
       const data = await fetchData();
 
-      // Defensive: if API doesn't send 'written', fall back to 0 and warn
       const current = Number(data.current) || 0;
       const target  = Number(data.target)  || 1000000;
       const written = ('written' in data) ? (Number(data.written) || 0) : 0;
       if (!('written' in data)) {
-        console.warn("API payload has no 'written' field. Showing 0. Update your Apps Script to include Metrics!C2.");
+        console.warn("API payload has no 'written' field. Showing 0 for legend. Update your Apps Script to include Metrics!C2.");
       }
 
       const milestones = Array.isArray(data.milestones) && data.milestones.length ? data.milestones : DEFAULT_MILESTONES;
 
       injectMilestones(milestones, target);
-      setBars(current, written, target);
+      setSettled(current, target);
+
+      // Legend only (no bar fill for written)
+      writtenValueEl.textContent = fmtGBP(written);
 
       setPaceUI(current, target);
       updateBizDaysUI();
